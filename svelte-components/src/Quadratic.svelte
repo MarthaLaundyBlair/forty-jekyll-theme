@@ -4,7 +4,7 @@
         return Math.sqrt(n) === Math.round(Math.sqrt(n));
     };
 
-    var simpleFraction = function (numOne, numTwo) {
+  var simpleFraction = function (numOne, numTwo) {
         let sign =
             (numOne < 0 && numTwo > 0) || (numOne >= 0 && numTwo < 0)
                 ? "-"
@@ -21,7 +21,9 @@
                            fraction: `${sign}${num1}`,
                            num1: `${num1}`,
 													 num2: ``,
-                        	 sign: `${sign}`
+                        	 sign: `${sign}`,
+													 num2Stripped: `${num2}`,
+													 num1Sign: `${sign}${num1}`,
 											};
                 }else {
                     return {
@@ -29,6 +31,8 @@
                             num1: `${num1}`,
 														num2: `/${num2}`,
                             sign: `${sign}`,
+														num2Stripped: `${num2}`,
+														num1Sign: `${sign}${num1}`,
 										};
                 }
             }
@@ -39,6 +43,8 @@
                 num1: `${num1}`,
                 num2: `/${num2}`,
                 sign: `${sign}`,
+								num2Stripped: `${num2}`,
+								num1Sign: `${sign}${num1}`,
                 };
         }
     };
@@ -235,14 +241,17 @@
             formula: `${component1}+${component2} and ${component1}-${component2}`,
         };
     };
-
+	
     function calculate(useComplexNumbers) {
         var calcData = calculationParts(a, b, c);
-				if (isNaN(parseInt(a)) || isNaN(parseInt(b)) || isNaN(parseInt(c))){
+            A = calcData.A;
+            B = calcData.B;
+            C = calcData.C;
+				if (isNaN(parseInt(a)) || isNaN(parseInt(b)) || isNaN(parseInt(c)) || Number.isInteger(A) == false || Number.isInteger(B) == false || Number.isInteger(C) == false){
 					
-					 let A = "";
-    			 let B = "";
-   				 let C = "";
+					let A = "";
+    			    let B = "";
+   				    let C = "";
 					 showStep1 = false;
 					 steps = [
                 {
@@ -250,6 +259,11 @@
                     formula: "Try inputting integer coefficients instead!",
                 },
             ];
+						showPart1 = false;
+						parts = [{
+                    comment: "",
+                    formula: "",
+                },];
 					return {};
 				}
         
@@ -259,7 +273,8 @@
         A = calcData.A;
         B = calcData.B;
         C = calcData.C;
-				showStep1 = true;
+		showStep1 = true;
+		showPart1 = true;
 
         if (calcData.isComplex && !useComplexNumbers) {
             steps = [
@@ -285,7 +300,138 @@
                 step6NonSquare(calcData),
             ];
         }
-    }
+			if (calcData.isSqr() && calcData.A == 1){
+				parts = [...factoriseInitial(calcData), ...factoriseSimple(calcData)];
+			} else if (calcData.isSqr() && calcData.A !== 1){
+				parts = [...factoriseInitial(calcData), ...factoriseHard(calcData)];
+			} else {
+				showPart1 = false;
+				parts = [
+					{
+                    comment: "",
+                    formula: "",
+                },
+				];
+			}
+			approx = approxCalculate(calcData);
+		}	
+	
+	
+		//Factorisation Functions
+	
+		var approxCalculate = function (calcData) {
+			 let { minusB, twoA, D, modD } = calcData;
+			 
+			 if (D < 0){
+				 var x1 = `${minusB/twoA} + ${Math.sqrt(modD)/twoA}i`;
+				 var x2 = `${minusB/twoA} - ${Math.sqrt(modD)/twoA}i`;
+			 }
+			 else {
+				 var x1 = `${(minusB + Math.sqrt(D))/twoA}`;
+				 var x2 = `${(minusB - Math.sqrt(D))/twoA}`;
+			 };
+			 return{
+                Solution1: `Solution 1 = ${x1}` ,
+                Solution2: `Solution 2 = ${x2}`,
+            };     
+    };
+	
+	var factoriseInitial = function (calcData, factoriseData) {
+			 
+			 let {A, B, C} = calcData;
+			 
+		 	 return [
+            {
+                comment: `This quadratic can be solved by factorisation!`,
+                formula: `ax\u00B2 + bx + c = (px + q)(rx + s) = 0`,
+            },
+				 		{
+                comment: `Lets start by comparing the given form to the desired form...`,
+                formula: `${A}x\u00B2 + ${B}x + ${C} = (px + q)(rx + s) = prx\u00B2 + (ps + qr)x + qs = 0 `,
+            }, 
+        ];
+       
+    };
+	
+		var factoriseSimple = function (calcData) {
+			 
+			 let {A, B, C, minusB, twoA, D, sqrtD} = calcData;
+			 let x1 = (minusB + sqrtD)/twoA;
+			 let x2 = (minusB - sqrtD)/twoA;
+			 
+		 	 return [
+            {
+                comment: `However as the coefficent of x\u00B2 (a) = 1, this problem can easily be simplified to`,
+                formula: `x\u00B2 + bx + c = (x + q)(x + s) = x\u00B2 + (q + s)x + qs = 0`,
+            },
+				  	{
+				 				comment: `Comparing the coefficients of the powers of x terms tells us`,
+            		formula: `${B} = q + s and ${C} = qs`,
+            },
+				 		{
+                comment: `More simply put we need to find two numbers which add to give ${B} and multiply to give ${C}. This may take a bit of trail and error but you should end up with...`,
+                formula: `q = ${-x1} and s = ${-x2} (${-x1}\u00D7${-x2}=${C} and ${-x1}+${-x2}=${B})`,
+            },
+				 		{
+                comment: `From this we can easily obtain the desired factorised form which we can then solve`,
+                formula: `(x + ${-x1})(x + ${-x2}) = 0`,
+            },
+				 		{
+                comment: `The only way this can equal zero is if one of the bracketed terms is equal to zero because anything multiplied by zero returns zero. This gives us two equations as follows `,
+                formula: `x + ${-x1} = 0 and x + ${-x2} = 0`,
+            },
+				 		{
+                comment: `We can solve these two simple equations to give us our two final solutions of`,
+                formula: `${x1} and ${x2}`,
+            },
+        ];
+       
+    };
+	
+	var factoriseHard = function (calcData) {
+			 
+			 let {A, B, C, minusB, sqrtD, twoA} = calcData;
+			
+			 let numeratorA = minusB + sqrtD;
+       let numeratorB = minusB - sqrtD;
+			
+			
+			
+			 let p = simpleFraction(numeratorA, twoA).num2Stripped;
+			 let r = simpleFraction(numeratorB, twoA).num2Stripped;
+			 let q = simpleFraction(numeratorA, twoA).num1Sign;
+			 let s = simpleFraction(numeratorB, twoA).num1Sign;
+			 
+			 
+		 	 return [
+				 		{
+                comment: `Comparing the coefficients of the powers of x terms tells us`,
+                formula: `${A} = pr, ${B} = ps + qr and ${C} = qs`,
+            },
+				 		{
+                comment: `This may seem initially tricky to solve by trial and error, but it gets easier with more practice!`,
+                formula: `Writing a list of possibe numbers that multiply to give ${A} and ${C} will help. Try thinking about their relationship to ${B}.`,
+           },
+				   {
+                comment: `We can see that ${p} \u00D7 ${r} = ${A} (a) and therefore write`,
+                formula: `(${p}x + q)(${r}x + s) = 0 `,
+           },
+           {
+                comment: `We also can see that  ${q} \u00D7 ${s} = ${C} (c) and because ${B} = (${p} \u00D7 ${s}) + (${q} \u00D7 ${r}) = ${B} this allows us to write`,
+                formula: `(${p}x + ${q})(${r}x + ${s}) = 0 `,
+           },
+				   {
+				   	   comment: `The only way this can equal zero is if one of the bracketed terms is equal to zero because anything multiplied by zero returns zero. This gives us two equations as follows `,
+                formula: `${p}x + ${q} = 0 and ${r}x + ${s} = 0 `,
+            },
+				 		{
+                comment: `We can solve these two simple equations to give us our two final solutions of`,
+                formula: `${simpleFraction(numeratorA, twoA).fraction} and ${simpleFraction(numeratorB, twoA).fraction}`,
+            },
+				 		
+        ];  
+    };
+	
 
     // Variables
     let compWithComplex = false;
@@ -298,10 +444,15 @@
     let b = "";
     let c = "";
 		let showStep1 = "";
+		let showPart1 = "";
 
     let steps = [];
+		let parts = [];
+		let approx = [];
+		
 
     let count = 0;
+
 </script>
 
 <div class="inner">
@@ -367,16 +518,33 @@
                 with real solutions.
             </p>
         {/if}
+
+        <blockquote>
+            {#if count > 0} 
+              <span class="x1">{approx.Solution1}</span><br />
+              <span class="x2">{approx.Solution2}</span><br />
+            {/if}
+        </blockquote>
+
+       
+           
     
     </section>
 
 
     <section class="split">
+
         <h4>
             {count}
             {count === 1 ? "quadratic" : "quadratics"} calc.ulated!
         </h4>
-
+        
+    
+					{#if showStep1}
+						<h4>
+									Quadratic Formula Method-
+						</h4>
+					{/if}
 
             {#each steps as step, i}
                         <div class="step">
@@ -387,6 +555,24 @@
                         <span class="formula">{step.formula}</span><br />
                         </div>
             {/each}
+			
+						{#if isSquare}
+                            {#if showPart1}    
+								<h4>
+									Factorisation Method-
+								</h4>
+                            {/if}
+							{#each parts as part, i}
+          			<div class="part">
+									{#if showPart1}
+								<h6>Step {i + 1}</h6>
+									{/if}
+           			<span class="comment">{part.comment}</span><br />
+           			<span class="formula">{part.formula}</span><br />
+           			</div>
+      				{/each}
+			
+						{/if}
 
-    </section>
+    </section> 
 </div>
